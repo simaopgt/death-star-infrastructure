@@ -1,5 +1,5 @@
 # Use the modern Ubuntu LTS image from Microsoft as a stable base.
-FROM mcr.microsoft.com/devcontainers/base:ubuntu
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
 
 # Set non-interactive frontend to prevent installers from prompting for user input during build.
 ENV DEBIAN_FRONTEND=noninteractive
