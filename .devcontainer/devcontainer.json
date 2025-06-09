@@ -1,0 +1,29 @@
+{
+  // Human-friendly name for the Dev Container, visible in the IDE.
+  "name": "Death Star - Infrastructure (Terraform & GCP)",
+  // Instructs Dev Containers to build a custom image using our Dockerfile.
+  // This approach provides maximum control and reliability.
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  // VS Code / Cursor specific customizations.
+  "customizations": {
+    "vscode": {
+      // Editor settings applied automatically inside the container for consistency.
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.trimTrailingWhitespace": true
+      },
+      // Extensions to install inside the container to provide a rich development experience.
+      "extensions": [
+        "hashicorp.terraform", // Core Terraform language support.
+        "googlecloudtools.cloudcode", // GCP integration, secret management, etc.
+        "ms-vscode.azure-account", // Often used for unified cloud identity management.
+        "GitHub.vscode-pull-request-github" // Manage GitHub PRs directly in the IDE.
+      ]
+    }
+  },
+  // Specifies the default user to run as inside the container. 'vscode' is a standard non-root user.
+  "remoteUser": "vscode"
+}
