@@ -1,6 +1,7 @@
 variable "project_id" {
   description = "The ID of the GCP project."
   type        = string
+  default     = "death-star-platform-666"
 }
 
 variable "region" {
@@ -30,7 +31,7 @@ variable "subnet_ip_cidr_range" {
 variable "artifact_registry_repo_name" {
   description = "The name of the Artifact Registry remote repository."
   type        = string
-  default     = "ghcr-remote"
+  default     = "death-star-images"
 }
 
 variable "command_core_service_name" {
@@ -42,6 +43,7 @@ variable "command_core_service_name" {
 variable "command_core_image" {
   description = "The container image for the Command Core service."
   type        = string
+  default     = "death-star-command-core:latest"
 }
 
 variable "bridge_ui_service_name" {
@@ -53,4 +55,5 @@ variable "bridge_ui_service_name" {
 variable "bridge_ui_image" {
   description = "The container image for the Bridge UI service."
   type        = string
+  default     = "death-star-bridge-ui:latest"
 }
