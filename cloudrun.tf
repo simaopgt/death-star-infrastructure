@@ -5,7 +5,7 @@ resource "google_cloud_run_v2_service" "command_core" {
   deletion_protection = false
   template {
     containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.standard_repo.repository_id}/death-star-command-core:latest"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.standard_repo.repository_id}/death-star-command-core:4fdabc69118ffb99eb232720f50193f273c90849"
       ports {
         container_port = 8080
       }
