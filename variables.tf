@@ -27,6 +27,12 @@ variable "subnet_ip_cidr_range" {
   default     = "10.0.0.0/24"
 }
 
+variable "artifact_registry_repo_name" {
+  description = "The name of the Artifact Registry remote repository."
+  type        = string
+  default     = "ghcr-remote"
+}
+
 variable "command_core_service_name" {
   description = "The name of the Command Core Cloud Run service."
   type        = string
