@@ -3,3 +3,6 @@
 
 # project_id = "death-star-platform-666"
 # region     = "us-central1"
+
+# command_core_image = "ghcr.io/project-death-star/death-star-command-core:main"
+# bridge_ui_image    = "ghcr.io/project-death-star/death-star-bridge-ui:main"
