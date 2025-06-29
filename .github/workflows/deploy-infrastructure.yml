@@ -1,0 +1,173 @@
+name: 🚀 Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: death-star-platform-666
+  REGION: us-central1
+  TERRAFORM_VERSION: 1.9.8
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  terraform-plan:
+    name: 📋 Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    outputs:
+      plan-output: ${{ steps.plan.outputs.stdout }}
+      
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: ☁️ Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 🏗️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: 🎯 Terraform Init
+        run: terraform init
+        working-directory: .
+
+      - name: ✅ Terraform Validate
+        run: terraform validate
+        working-directory: .
+
+      - name: 📊 Terraform Plan
+        id: plan
+        run: |
+          terraform plan -no-color -out=tfplan
+          echo "stdout<<EOF" >> $GITHUB_OUTPUT
+          terraform show -no-color tfplan >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        working-directory: .
+
+      - name: 💬 Comment PR with Plan
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const plan = `${{ steps.plan.outputs.stdout }}`;
+            const body = `
+            ## 🏗️ Terraform Plan Results
+            
+            <details>
+            <summary>📋 Click to expand plan</summary>
+            
+            \`\`\`hcl
+            ${plan}
+            \`\`\`
+            
+            </details>
+            
+            **Triggered by**: ${{ github.actor }}
+            **Commit**: ${{ github.sha }}
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  terraform-apply:
+    name: 🚀 Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: ☁️ Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 🏗️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: 🎯 Terraform Init
+        run: terraform init
+        working-directory: .
+
+      - name: ✅ Terraform Validate
+        run: terraform validate
+        working-directory: .
+
+      - name: 📊 Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: .
+
+      - name: 🚀 Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: .
+
+      - name: 📋 Get Service URLs
+        id: urls
+        run: |
+          echo "command_core_url=$(gcloud run services describe command-core --region=${{ env.REGION }} --format='value(status.url)')" >> $GITHUB_OUTPUT
+          echo "bridge_ui_url=$(gcloud run services describe bridge-ui --region=${{ env.REGION }} --format='value(status.url)')" >> $GITHUB_OUTPUT
+
+      - name: 📝 Create Deployment Summary
+        run: |
+          echo "# 🎉 Infrastructure Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🌐 Service URLs" >> $GITHUB_STEP_SUMMARY
+          echo "- **Command Core (BFF)**: ${{ steps.urls.outputs.command_core_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bridge UI (WEB)**: ${{ steps.urls.outputs.bridge_ui_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: ${{ env.PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Terraform Version**: ${{ env.TERRAFORM_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔔 Notify on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Infrastructure Deployment Failed',
+              body: `
+              ## ❌ Infrastructure deployment failed
+              
+              **Branch**: ${context.ref}
+              **Commit**: ${context.sha}
+              **Actor**: ${context.actor}
+              **Workflow**: ${context.workflow}
+              **Run**: ${context.runNumber}
+              
+              Please check the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.
+              `,
+              labels: ['deployment-failure', 'infrastructure']
+            });
